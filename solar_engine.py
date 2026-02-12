@@ -33,19 +33,29 @@ def build_system(system_size_kw, tilt, azimuth):
     modules = pvlib.pvsystem.retrieve_sam("CECMod")
     inverters = pvlib.pvsystem.retrieve_sam("cecinverter")
 
-    module = modules["Canadian_Solar_CS5P_220M___2009_"]
-    inverter = inverters["ABB__MICRO_0_25_I_OUTD_US_208__208V_"]
+    module = modules["JA_Solar_JAM60S20_385_MR"]  # ~385W modern module
+    inverter = inverters["SMA_America__SB5000TL_US_240V_"]  # ~5 kW inverter
 
     module_power = module["STC"] / 1000  # kW per module
     num_modules = max(int(system_size_kw / module_power), 1)
+
+    dc_ac_ratio = 1.2
+    inverter_ac_kw = inverter["Pdco"] / 1000
+
+    target_dc_kw = system_size_kw
+    target_ac_kw = target_dc_kw / dc_ac_ratio
+
+    modules_per_string = 10
+    strings = max(int(target_dc_kw / (module_power * modules_per_string)), 1)
 
     system = PVSystem(
         surface_tilt=tilt,
         surface_azimuth=azimuth,
         module_parameters=module,
         inverter_parameters=inverter,
-        modules_per_string=10,
-        strings_per_inverter=max(int(num_modules / 10), 1),
+        modules_per_string=modules_per_string,
+        strings_per_inverter=strings,
+        losses_parameters={"soiling": 2, "wiring": 2, "mismatch": 2}
     )
 
     return system
@@ -56,8 +66,8 @@ def run_full_simulation(latitude, longitude, system_size_kw, tilt=20, azimuth=18
     site = Location(latitude, longitude, tz="Asia/Kolkata")
 
     times = pd.date_range(
-        start="2024-01-01",
-        end="2024-12-31",
+        start="2024-01-01 00:00",
+        end="2024-12-31 23:00",
         freq="1H",
         tz=site.tz
     )
@@ -74,7 +84,13 @@ def run_full_simulation(latitude, longitude, system_size_kw, tilt=20, azimuth=18
 
     system = build_system(system_size_kw, tilt, azimuth)
 
-    mc = ModelChain(system, site)
+    mc = ModelChain(
+        system,
+        site,
+        aoi_model="physical",
+        spectral_model="no_loss",
+        temperature_model="sapm"
+    )
     mc.run_model(weather)
 
     ac = mc.results.ac.fillna(0)
@@ -90,13 +106,15 @@ def run_full_simulation(latitude, longitude, system_size_kw, tilt=20, azimuth=18
     annual_clear = ac_clear.sum() / 1000
 
     # Extra losses
-    extra_losses = 0.05  # 5%
+    extra_losses = 0.08  # 8% more realistic India assumption
     annual_real_adjusted = annual_real * (1 - extra_losses)
 
     # Performance ratio
-    poa = mc.results.total_irrad["poa_global"].sum()  # Wh/m2
-    if poa > 0:
-        pr = annual_real_adjusted / (system_size_kw * (poa / 1000))
+    poa = mc.results.total_irrad["poa_global"]
+    poa_sum = poa.sum() / 1000  # kWh/m2
+
+    if poa_sum > 0:
+        pr = annual_real / (system_size_kw * poa_sum)
     else:
         pr = 0
 
