@@ -51,12 +51,12 @@ This project aims to provide a **trustworthy, physics-based solar decision engin
 
 ## System Architecture
 
-```
+
 Choose Your Input Method:
 
 - **Rooftop Image (Optional)** → AI Segmentation → Usable Area Calculation  
 - **Monthly Electricity Bill** → Consumption Estimation  
-
+```
 ↓
 
 Location & State Selection  
