@@ -7,6 +7,48 @@ import matplotlib.pyplot as plt
 from sam_model import load_sam_model, get_rooftop_mask
 from utils import calculate_area_from_mask, estimate_solar_metrics
 
+@st.cache_resource
+def load_cached_sam():
+    return load_sam_model()
+
+def display_results(metrics, monthly_generation):
+
+    st.header("Solar System Results")
+
+    st.write(f"System Size: {metrics['system_size_kw']} kW")
+    st.write(f"Annual Generation: {metrics['annual_generation_kwh']} kWh")
+    st.write(f"Performance Ratio: {metrics['performance_ratio']}")
+    st.write(f"Installation Cost: ₹{metrics['installation_cost']}")
+    st.write(f"Subsidy (PM Surya Ghar): ₹{metrics['subsidy']}")
+    st.write(f"Net Cost After Subsidy: ₹{metrics['net_cost']}")
+    st.write(f"Estimated Annual Savings: ₹{metrics['annual_savings']}")
+    st.write(f"Estimated Payback Period: {metrics['payback_years']} years")
+    st.write(f"Return on Investment: {metrics['roi_percent']} %")
+
+    # Monthly generation plot
+    st.subheader("Monthly Energy Output")
+    fig, ax = plt.subplots()
+    ax.plot(monthly_generation.index, monthly_generation.values)
+    ax.set_ylabel("Energy (kWh)")
+    ax.set_xlabel("Month")
+    st.pyplot(fig)
+
+    # 10-Year Projection Plot
+    st.subheader("10-Year Savings Projection")
+
+    fig2, ax2 = plt.subplots()
+    ax2.plot(range(1, 11), metrics["cumulative_savings"])
+    ax2.set_ylabel("Cumulative Savings (₹)")
+    ax2.set_xlabel("Year")
+    st.pyplot(fig2)
+
+    # Final recommendation logic
+    if metrics["payback_years"] <= 6:
+        st.success("Recommendation: Rooftop solar installation appears financially attractive.")
+    elif metrics["payback_years"] <= 10:
+        st.warning("Recommendation: Rooftop solar may be viable with moderate financial return.")
+    else:
+        st.error("Recommendation: Financial return may be slow under current assumptions.")
 
 st.set_page_config(page_title="SolarAIAssistant", layout="wide")
 
@@ -15,25 +57,21 @@ st.subheader("Rooftop Solar Feasibility and Savings Estimator for Indian Househo
 
 st.markdown(
     """
-    This application helps evaluate rooftop solar feasibility under the 
-    PM Surya Ghar Yojana using physics-based simulation and financial modeling.
+    Evaluate rooftop solar installation under PM Surya Ghar Yojana
+    using physics-based energy simulation and financial modeling.
     """
 )
 
-# -------------------------------------------------------
 # Input Method Selection
-# -------------------------------------------------------
 
 st.header("Input Method")
 
 input_mode = st.radio(
-    "Select how you would like to evaluate your solar installation:",
+    "Select evaluation method:",
     ["Monthly Electricity Bill", "Rooftop Image (AI Detection)"]
 )
 
-# -------------------------------------------------------
 # Location Settings
-# -------------------------------------------------------
 
 st.header("Location Settings")
 
@@ -45,9 +83,17 @@ azimuth = st.slider("Panel Azimuth (degrees)", 0, 360, 180)
 
 optimize = st.checkbox("Automatically optimize tilt")
 
-# -------------------------------------------------------
-# Bill-Based Mode
-# -------------------------------------------------------
+tariff = st.number_input(
+    "Electricity Tariff (₹ per kWh)",
+    min_value=0.1,
+    value=8.0
+)
+
+if tariff <= 0:
+    st.error("Electricity tariff must be greater than zero.")
+    st.stop()
+
+# BILL MODE
 
 if input_mode == "Monthly Electricity Bill":
 
@@ -55,58 +101,40 @@ if input_mode == "Monthly Electricity Bill":
 
     monthly_bill = st.number_input("Monthly Electricity Bill (₹)", min_value=0.0)
 
-    state_tariff = st.number_input(
-        "Electricity Tariff (₹ per kWh)",
-        min_value=0.0,
-        value=8.0
-    )
-
     if st.button("Run Feasibility Analysis"):
 
         if monthly_bill <= 0:
             st.error("Please enter a valid monthly electricity bill.")
         else:
             annual_bill = monthly_bill * 12
-            annual_consumption = annual_bill / state_tariff
+            annual_consumption = annual_bill / tariff
 
-            # Assume 1 kW produces approx 1400 kWh/year (rough Indian avg)
-            estimated_system_size = annual_consumption / 1400
+            # Approximate system size estimation
+            average_specific_yield = 1500  # kWh per kW per year (India average)
+            estimated_system_size = annual_consumption / average_specific_yield
+            estimated_area = estimated_system_size / 0.18
 
             metrics, monthly_generation = estimate_solar_metrics(
-                area_m2=estimated_system_size / 0.18,
+                area_m2=estimated_area,
                 latitude=latitude,
                 longitude=longitude,
                 tilt=tilt,
                 azimuth=azimuth,
-                optimize=optimize
+                optimize=optimize,
+                tariff=tariff
             )
 
-            st.header("Solar System Results")
-
-            st.write(f"Estimated System Size: {metrics['system_size_kw']} kW")
-            st.write(f"Estimated Annual Generation: {metrics['annual_generation_kwh']} kWh")
-            st.write(f"Performance Ratio: {metrics['performance_ratio']}")
-            st.write(f"Payback Period: {metrics['payback_years']} years")
-            st.write(f"Return on Investment: {metrics['roi_percent']} %")
-
-            # Plot monthly generation
-            fig, ax = plt.subplots()
-            ax.plot(monthly_generation.index, monthly_generation.values)
-            ax.set_ylabel("Energy (kWh)")
-            ax.set_xlabel("Month")
-            st.pyplot(fig)
+            display_results(metrics, monthly_generation)
 
 
-# -------------------------------------------------------
-# Rooftop Image Mode
-# -------------------------------------------------------
+# ROOFTOP MODE
 
 elif input_mode == "Rooftop Image (AI Detection)":
 
     st.header("Upload Rooftop Image")
 
     uploaded_file = st.file_uploader(
-        "Upload a satellite or aerial image of your rooftop",
+        "Upload a satellite or aerial rooftop image",
         type=["png", "jpg", "jpeg"]
     )
 
@@ -116,7 +144,7 @@ elif input_mode == "Rooftop Image (AI Detection)":
         st.image(image, caption="Uploaded Image", use_container_width=True)
 
         with st.spinner("Detecting rooftop area..."):
-            sam = load_sam_model()
+            sam = load_cached_sam()
             mask = get_rooftop_mask(image, sam)
 
         if mask is None:
@@ -125,11 +153,7 @@ elif input_mode == "Rooftop Image (AI Detection)":
             masked_image_np = np.array(image)
             masked_image_np[~mask] = [0, 0, 0]
 
-            st.image(
-                masked_image_np,
-                caption="Detected Rooftop Area",
-                use_container_width=True
-            )
+            st.image(masked_image_np, caption="Detected Rooftop Area", use_container_width=True)
 
             area_m2 = calculate_area_from_mask(mask)
 
@@ -139,20 +163,8 @@ elif input_mode == "Rooftop Image (AI Detection)":
                 longitude=longitude,
                 tilt=tilt,
                 azimuth=azimuth,
-                optimize=optimize
+                optimize=optimize,
+                tariff=tariff
             )
 
-            st.header("Solar System Results")
-
-            st.write(f"Usable Rooftop Area: {area_m2} m²")
-            st.write(f"System Size: {metrics['system_size_kw']} kW")
-            st.write(f"Annual Generation: {metrics['annual_generation_kwh']} kWh")
-            st.write(f"Performance Ratio: {metrics['performance_ratio']}")
-            st.write(f"Payback Period: {metrics['payback_years']} years")
-            st.write(f"Return on Investment: {metrics['roi_percent']} %")
-
-            fig, ax = plt.subplots()
-            ax.plot(monthly_generation.index, monthly_generation.values)
-            ax.set_ylabel("Energy (kWh)")
-            ax.set_xlabel("Month")
-            st.pyplot(fig)
+            display_results(metrics, monthly_generation)
