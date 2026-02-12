@@ -105,10 +105,6 @@ def run_full_simulation(latitude, longitude, system_size_kw, tilt=20, azimuth=18
     ac_clear = mc_clear.results.ac.fillna(0)
     annual_clear = ac_clear.sum() / 1000
 
-    # Extra losses
-    extra_losses = 0.08  # 8% more realistic India assumption
-    annual_real_adjusted = annual_real * (1 - extra_losses)
-
     # Performance ratio
     poa = mc.results.total_irrad["poa_global"]
     poa_sum = poa.sum() / 1000  # kWh/m2
