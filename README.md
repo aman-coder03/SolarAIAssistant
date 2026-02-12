@@ -7,8 +7,8 @@ SolarAIAssistant is a physics-based rooftop solar decision-support system design
 
 It answers a simple but critical question:
 
-> “Should I install rooftop solar under PM Surya Ghar?  
-> How much will I actually save?”
+> Should I install rooftop solar under PM Surya Ghar?  
+> How much will I actually save?
 
 ---
 
