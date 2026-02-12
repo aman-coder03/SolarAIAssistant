@@ -12,6 +12,16 @@ It answers a simple but critical question:
 
 ---
 
+## Who This Is For
+
+- Indian homeowners evaluating rooftop solar
+- Solar installers pre-screening potential customers
+- Climate-tech enthusiasts
+- Policy & energy researchers
+- Financial institutions analyzing rooftop solar ROI
+
+---
+
 ## What This Project Does
 
 SolarAIAssistant combines:
@@ -28,7 +38,7 @@ Instead of using rough estimates, this system performs **hourly photovoltaic sim
 
 ---
 
-## 🇮🇳 Why This Matters for India
+## Why This Matters for India
 
 India is rapidly expanding rooftop solar through PM Surya Ghar. However:
 
@@ -38,16 +48,6 @@ India is rapidly expanding rooftop solar through PM Surya Ghar. However:
 - Financial returns are not clearly projected
 
 This project aims to provide a **trustworthy, physics-based solar decision engine tailored for Indian conditions.**
-
----
-
-## Who This Is For
-
-- Indian homeowners evaluating rooftop solar
-- Solar installers pre-screening potential customers
-- Climate-tech enthusiasts
-- Policy & energy researchers
-- Financial institutions analyzing rooftop solar ROI
 
 ---
 
