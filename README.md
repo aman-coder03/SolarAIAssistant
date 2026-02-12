@@ -58,7 +58,6 @@ Choose Your Input Method:
 - **Monthly Electricity Bill** → Consumption Estimation  
 ```
 ↓
-
 Location & State Selection  
 ↓
 System Capacity Estimation  
