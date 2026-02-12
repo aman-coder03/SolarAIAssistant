@@ -94,9 +94,10 @@ def run_full_simulation(latitude, longitude, system_size_kw, tilt=20, azimuth=18
 
     weather = clearsky.copy()
 
-    clearness_index = 0.65
-    weather[["ghi", "dni", "dhi"]] *= clearness_index
-
+    # Apply realistic India atmospheric reduction
+    real_world_factor = 1.0
+    weather[["ghi", "dni", "dhi"]] *= real_world_factor
+    
     weather["temp_air"] = temperature["temp_air"]
     weather["wind_speed"] = temperature.get("wind_speed", 1)
 
@@ -110,11 +111,13 @@ def run_full_simulation(latitude, longitude, system_size_kw, tilt=20, azimuth=18
         temperature_model="sapm"
     )
     mc.run_model(weather)
-
     ac = mc.results.ac.fillna(0)
 
-    annual_real = ac.sum() / 1000
-    monthly_real = ac.resample("M").sum() / 1000
+    system_losses = 0.15  # 15% realistic losses
+    ac_adjusted = ac * (1 - system_losses)
+
+    annual_real = ac_adjusted.sum() / 1000
+    monthly_real = ac_adjusted.resample("ME").sum() / 1000
 
     # Clear-sky ideal comparison
     mc_clear = ModelChain(
@@ -129,10 +132,11 @@ def run_full_simulation(latitude, longitude, system_size_kw, tilt=20, azimuth=18
     ac_clear = mc_clear.results.ac.fillna(0)
     annual_clear = ac_clear.sum() / 1000
 
-    # Performance ratio
-    if system_size_kw > 0:
-        specific_yield = annual_real / system_size_kw
-        pr = specific_yield / 1600
+    poa = mc.results.total_irrad["poa_global"]  # W/m²
+    poa_sum = poa.sum() / 1000  # kWh/m²
+
+    if system_size_kw > 0 and poa_sum > 0:
+        pr = annual_real / (system_size_kw * poa_sum)
     else:
         pr = 0
 

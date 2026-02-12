@@ -118,7 +118,7 @@ def estimate_solar_metrics(
     net_cost = installation_cost - subsidy
 
     # ---- Net Metering Model ----
-    self_consumption_ratio = 0.7
+    self_consumption_ratio = 0.55
     export_tariff = tariff * 0.6
 
     self_used_energy = annual_generation_kwh * self_consumption_ratio

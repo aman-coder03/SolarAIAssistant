@@ -11,44 +11,94 @@ from utils import calculate_area_from_mask, estimate_solar_metrics
 def load_cached_sam():
     return load_sam_model()
 
-def display_results(metrics, monthly_generation):
+def display_results(metrics, monthly_generation, monthly_bill=None, tariff=8.0):
 
-    st.header("Solar System Results")
+    st.markdown("## Solar Feasibility Summary")
 
-    st.write(f"System Size: {metrics['system_size_kw']} kW")
-    st.write(f"Annual Generation: {metrics['annual_generation_kwh']} kWh")
-    st.write(f"Performance Ratio: {metrics['performance_ratio']}")
-    st.write(f"Installation Cost: ₹{metrics['installation_cost']}")
-    st.write(f"Subsidy (PM Surya Ghar): ₹{metrics['subsidy']}")
-    st.write(f"Net Cost After Subsidy: ₹{metrics['net_cost']}")
-    st.write(f"Estimated Annual Savings: ₹{metrics['annual_savings']}")
-    st.write(f"Estimated Payback Period: {metrics['payback_years']} years")
-    st.write(f"Return on Investment: {metrics['roi_percent']} %")
+    system_size = metrics["system_size_kw"]
+    annual_gen = metrics["annual_generation_kwh"]
+    annual_savings = metrics["annual_savings"]
+    payback = metrics["payback_years"]
+    roi = metrics["roi_percent"]
+    net_cost = metrics["net_cost"]
 
-    # Monthly generation plot
-    st.subheader("Monthly Energy Output")
-    fig, ax = plt.subplots()
-    ax.plot(monthly_generation.index, monthly_generation.values)
-    ax.set_ylabel("Energy (kWh)")
-    ax.set_xlabel("Month")
-    st.pyplot(fig)
-
-    # 10-Year Projection Plot
-    st.subheader("10-Year Savings Projection")
-
-    fig2, ax2 = plt.subplots()
-    ax2.plot(range(1, 11), metrics["cumulative_savings"])
-    ax2.set_ylabel("Cumulative Savings (₹)")
-    ax2.set_xlabel("Year")
-    st.pyplot(fig2)
-
-    # Final recommendation logic
-    if metrics["payback_years"] <= 6:
-        st.success("Recommendation: Rooftop solar installation appears financially attractive.")
-    elif metrics["payback_years"] <= 10:
-        st.warning("Recommendation: Rooftop solar may be viable with moderate financial return.")
+    # --- Bill Offset ---
+    if monthly_bill:
+        annual_consumption = (monthly_bill * 12) / tariff
+        bill_offset = min((annual_gen / annual_consumption) * 100, 100)
+        estimated_new_bill = max(
+            (annual_consumption - annual_gen) * tariff / 12, 0
+        )
     else:
-        st.error("Recommendation: Financial return may be slow under current assumptions.")
+        bill_offset = None
+        estimated_new_bill = None
+
+    # WHAT THIS MEANS FOR YOU
+
+    st.markdown("### What This Means For You")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("System Size", f"{system_size} kW")
+    col2.metric("Annual Savings", f"₹{annual_savings:,.0f}")
+    col3.metric("Payback Period", f"{payback} years")
+
+    if bill_offset:
+        st.success(
+            f"Your solar system can offset **{bill_offset:.0f}%** of your yearly electricity usage."
+        )
+        st.info(
+            f"Your ₹{monthly_bill:,.0f} monthly bill could reduce to approximately **₹{estimated_new_bill:,.0f}/month**."
+        )
+
+    # LONG TERM VALUE
+
+    st.markdown("### 10-Year Financial Impact")
+
+    total_10yr = metrics["cumulative_savings"][-1]
+
+    st.write(
+        f"Over 10 years, you could save approximately **₹{total_10yr:,.0f}**."
+    )
+
+    if roi > 25:
+        st.success("This investment significantly outperforms fixed deposits and low-risk instruments.")
+    elif roi > 15:
+        st.warning("This provides moderate long-term financial benefit.")
+    else:
+        st.error("Financial return is relatively modest under current assumptions.")
+
+    with st.expander("Technical Details (Advanced Users)"):
+        st.write(f"Annual Generation: {annual_gen} kWh")
+        st.write(f"Performance Ratio: {metrics['performance_ratio']}")
+        st.write(f"Installation Cost: ₹{metrics['installation_cost']}")
+        st.write(f"Subsidy (PM Surya Ghar): ₹{metrics['subsidy']}")
+        st.write(f"Net Cost After Subsidy: ₹{net_cost}")
+
+    # Side-by-side plots
+    st.subheader("Energy & Financial Projection")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("### Monthly Energy Output")
+        fig1, ax1 = plt.subplots(figsize=(5, 3))
+        ax1.bar(monthly_generation.index.strftime("%b"), 
+                monthly_generation.values)
+        ax1.set_ylabel("Energy (kWh)")
+        ax1.set_xlabel("Month")
+        plt.tight_layout()
+        st.pyplot(fig1)
+
+    with col2:
+        st.markdown("### 10-Year Savings Projection")
+        fig2, ax2 = plt.subplots(figsize=(5, 3))
+        ax2.plot(range(1, 11), metrics["cumulative_savings"], marker="o")
+        ax2.set_ylabel("Cumulative Savings (₹)")
+        ax2.set_xlabel("Year")
+        plt.tight_layout()
+        st.pyplot(fig2)
+
 
 st.set_page_config(page_title="SolarAIAssistant", layout="wide")
 
@@ -121,7 +171,12 @@ if input_mode == "Monthly Electricity Bill":
                 tariff=tariff
             )
 
-            display_results(metrics, monthly_generation)
+            display_results(
+                metrics,
+                monthly_generation,
+                monthly_bill=monthly_bill,
+                tariff=tariff
+            )
 
 
 # ROOFTOP MODE
