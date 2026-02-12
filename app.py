@@ -112,7 +112,8 @@ if input_mode == "Monthly Electricity Bill":
             # Approximate system size estimation
             average_specific_yield = 1500  # kWh per kW per year (India average)
             estimated_system_size = annual_consumption / average_specific_yield
-            estimated_area = estimated_system_size / 0.18
+            utilization_factor = 0.7
+            estimated_area = (estimated_system_size / 0.18) / utilization_factor
 
             metrics, monthly_generation = estimate_solar_metrics(
                 area_m2=estimated_area,
