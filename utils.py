@@ -110,18 +110,28 @@ def estimate_solar_metrics(
 
     annual_generation_kwh = results["annual_real_kwh"]
 
-    # ---- Installation Cost (India) ----
+    # ---- Installation Cost ----
     installation_cost = int(system_size_kw * cost_per_kw)
 
     # ---- PM Surya Ghar Subsidy ----
     subsidy = calculate_pm_surya_subsidy(system_size_kw, cost_per_kw)
     net_cost = installation_cost - subsidy
 
-    # ---- Annual Savings ----
-    annual_savings = round(annual_generation_kwh * tariff, 2)
+    # ---- Net Metering Model ----
+    self_consumption_ratio = 0.7
+    export_tariff = tariff * 0.6
 
-    # ---- Payback Calculation ----
-    if annual_savings > 0:
+    self_used_energy = annual_generation_kwh * self_consumption_ratio
+    exported_energy = annual_generation_kwh * (1 - self_consumption_ratio)
+
+    annual_savings = round(
+        self_used_energy * tariff +
+        exported_energy * export_tariff,
+        2
+    )
+
+    # ---- Payback ----
+    if annual_savings > 0 and net_cost > 0:
         payback_years = round(net_cost / annual_savings, 1)
         roi = round((annual_savings / net_cost) * 100, 1)
     else:
@@ -129,10 +139,30 @@ def estimate_solar_metrics(
         roi = 0
 
     # ---- 10-Year Projection ----
-    yearly_savings, cumulative_savings = ten_year_projection(
-        annual_generation_kwh,
-        tariff
-    )
+    degradation_rate = 0.005
+    inflation_rate = 0.05
+
+    yearly_savings = []
+    cumulative_savings = []
+    cumulative = 0
+
+    for year in range(1, 11):
+
+        degraded_generation = annual_generation_kwh * ((1 - degradation_rate) ** (year - 1))
+        inflated_tariff = tariff * ((1 + inflation_rate) ** (year - 1))
+
+        self_used = degraded_generation * self_consumption_ratio
+        exported = degraded_generation * (1 - self_consumption_ratio)
+
+        savings = (
+            self_used * inflated_tariff +
+            exported * (inflated_tariff * 0.6)
+        )
+
+        cumulative += savings
+
+        yearly_savings.append(round(savings, 2))
+        cumulative_savings.append(round(cumulative, 2))
 
     metrics = {
         "system_size_kw": system_size_kw,

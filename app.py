@@ -89,10 +89,6 @@ tariff = st.number_input(
     value=8.0
 )
 
-if tariff <= 0:
-    st.error("Electricity tariff must be greater than zero.")
-    st.stop()
-
 # BILL MODE
 
 if input_mode == "Monthly Electricity Bill":
