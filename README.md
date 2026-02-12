@@ -49,22 +49,31 @@ This project aims to provide a **trustworthy, physics-based solar decision engin
 
 ---
 
-## 🏗 System Architecture
+## System Architecture
 
 ```
-Rooftop Image (Optional)
+Choose Your Input Method:
+
+- **Rooftop Image (Optional)** → AI Segmentation → Usable Area Calculation  
+- **Monthly Electricity Bill** → Consumption Estimation  
+
 ↓
-AI Segmentation (SAM)
+
+Location & State Selection  
 ↓
-Usable Rooftop Area Calculation
+System Capacity Estimation  
 ↓
-System Capacity Estimation
+pvlib Time-Series Solar Simulation (Annual Generation)  
 ↓
-pvlib Time-Series Solar Simulation
+Loss Modeling & Performance Ratio  
 ↓
-Loss Modeling & Performance Ratio
+PM Surya Ghar Subsidy Calculation  
 ↓
-Financial Analysis (Savings & Payback)
+Net Metering & Bill Offset Modeling  
+↓
+10-Year Financial Projection (Savings, Degradation & Inflation)  
+↓
+Final Recommendation: Install or Not?
 ```
 
 ---
@@ -83,15 +92,15 @@ Financial Analysis (Savings & Payback)
 
 ## Current Features
 
-✔ AI rooftop detection  
-✔ Rooftop area estimation  
-✔ System capacity sizing  
-✔ Annual solar generation simulation  
-✔ Clear-sky vs real-condition comparison  
-✔ Performance ratio calculation  
-✔ System loss modeling  
-✔ Basic ROI & payback estimation  
-✔ Monthly energy output visualization  
+- AI-based rooftop detection  
+- Automated rooftop area estimation  
+- System capacity sizing  
+- Physics-based annual solar generation simulation  
+- Clear-sky vs real-world performance comparison  
+- Performance ratio calculation  
+- System loss modeling  
+- ROI and payback period estimation  
+- Monthly energy output visualization   
 
 ---
 
