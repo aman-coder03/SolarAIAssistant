@@ -1,6 +1,8 @@
 # SolarAIAssistant  
 ### AI-Powered Rooftop Solar Feasibility & Savings Engine for Indian Households (PM Surya Ghar Ready)
 
+> **An India-focused rooftop solar feasibility and savings simulator.**
+
 SolarAIAssistant is a physics-based rooftop solar decision-support system designed specifically for Indian homeowners evaluating rooftop solar under the **PM Surya Ghar Muft Bijli Yojana**.
 
 It answers a simple but critical question:
